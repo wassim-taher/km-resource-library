@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resource Library</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .resource-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+
+        .resource-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .resource-thumbnail {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.active {
+            display: flex;
+            opacity: 1;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 16px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal.active .modal-content {
+            transform: scale(1);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .type-video { background: #fee2e2; color: #991b1b; }
+        .type-image { background: #dbeafe; color: #1e40af; }
+        .type-gallery { background: #e0e7ff; color: #3730a3; }
+        .type-article { background: #dcfce7; color: #166534; }
+        .type-file { background: #fef3c7; color: #92400e; }
+        .type-pdf { background: #fecaca; color: #991b1b; }
+        .type-link { background: #e9d5ff; color: #6b21a8; }
+
+        .list-view .resource-card {
+            display: flex;
+            flex-direction: row;
+            margin-bottom: 16px;
+        }
+
+        .list-view .resource-thumbnail {
+            width: 200px;
+            height: 150px;
+            flex-shrink: 0;
+        }
+
+        .list-view .resource-content {
+            flex: 1;
+        }
+
+        .filter-btn {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .filter-btn.active {
+            background: #3b82f6 !important;
+            color: white !important;
+        }
+
+        .search-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Custom scrollbar */
+        .modal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .modal-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #f3f4f6;
+            color: #4b5563;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-right: 6px;
+            margin-bottom: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-8" style="max-width: 1400px;">
+        <!-- Header Section -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">Resource Library</h1>
+            <p class="text-gray-600">Explore our collection of educational resources</p>
+        </div>
+
+        <!-- Search and Filter Section -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 mb-8 border border-gray-200">
+            <!-- Search Bar -->
+            <div class="mb-6">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="Search resources by title, description, or tags..." 
+                        class="search-input w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:border-blue-500 transition"
+                    >
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="space-y-4">
+                <!-- Type Filter -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-3">Filter by Type</label>
+                    <div class="flex flex-wrap gap-2" id="typeFilters">
+                        <button class="filter-btn type-filter active px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-type="all">
+                            All Types
+                        </button>
+                        <button class="filter-btn type-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-type="video">
+                            <i class="fas fa-video mr-1"></i> Video
+                        </button>
+                        <button class="filter-btn type-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-type="image">
+                            <i class="fas fa-image mr-1"></i> Image
+                        </button>
+                        <button class="filter-btn type-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-type="gallery">
+                            <i class="fas fa-images mr-1"></i> Gallery
+                        </button>
+                        <button class="filter-btn type-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-type="article">
+                            <i class="fas fa-file-alt mr-1"></i> Article
+                        </button>
+                        <button class="filter-btn type-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-type="file">
+                            <i class="fas fa-file mr-1"></i> File
+                        </button>
+                        <button class="filter-btn type-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-type="pdf">
+                            <i class="fas fa-file-pdf mr-1"></i> PDF
+                        </button>
+                        <button class="filter-btn type-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-type="link">
+                            <i class="fas fa-link mr-1"></i> Link
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Topic Filter -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-3">Filter by Topic</label>
+                    <div class="flex flex-wrap gap-2" id="topicFilters">
+                        <button class="filter-btn topic-filter active px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-topic="all">
+                            All Topics
+                        </button>
+                        <button class="filter-btn topic-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-topic="mindful-check-in">
+                            Mindful Check-In
+                        </button>
+                        <button class="filter-btn topic-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-topic="conscious-breathing">
+                            Conscious Breathing
+                        </button>
+                        <button class="filter-btn topic-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-topic="reading-list">
+                            Reading List
+                        </button>
+                        <button class="filter-btn topic-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-topic="awareness">
+                            Awareness
+                        </button>
+                        <button class="filter-btn topic-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-topic="regulation">
+                            Regulation
+                        </button>
+                        <button class="filter-btn topic-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-topic="optimistic-thinking">
+                            Optimistic Thinking
+                        </button>
+                        <button class="filter-btn topic-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-topic="empathy">
+                            Empathy
+                        </button>
+                        <button class="filter-btn topic-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-topic="compassion">
+                            Compassion
+                        </button>
+                        <button class="filter-btn topic-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-topic="connection">
+                            Connection
+                        </button>
+                        <button class="filter-btn topic-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-topic="gratitude">
+                            Gratitude
+                        </button>
+                        <button class="filter-btn topic-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-topic="responsibility">
+                            Responsibility
+                        </button>
+                        <button class="filter-btn topic-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-topic="respect">
+                            Respect
+                        </button>
+                        <button class="filter-btn topic-filter px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium" data-topic="reflection">
+                            Reflection
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View Toggle and Results Count -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <span class="text-gray-600 font-medium"><span id="resultCount">0</span> resources found</span>
+            </div>
+            <div class="flex gap-2">
+                <button id="gridViewBtn" class="filter-btn active px-4 py-2 rounded-lg bg-blue-500 text-white">
+                    <i class="fas fa-th"></i> Grid
+                </button>
+                <button id="listViewBtn" class="filter-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-700">
+                    <i class="fas fa-list"></i> List
+                </button>
+            </div>
+        </div>
+
+        <!-- Resources Grid -->
+        <div id="resourcesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Resources will be dynamically inserted here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state hidden">
+            <i class="fas fa-search text-6xl text-gray-300 mb-4"></i>
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">No resources found</h3>
+            <p class="text-gray-500">Try adjusting your filters or search terms</p>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="resourceModal" class="modal">
+        <div class="modal-content">
+            <div class="p-8">
+                <div class="flex justify-between items-start mb-6">
+                    <h2 id="modalTitle" class="text-3xl font-bold text-gray-800 pr-8"></h2>
+                    <button id="closeModal" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div id="modalBadges" class="flex flex-wrap gap-2 mb-6"></div>
+                
+                <div id="modalThumbnail" class="mb-6 rounded-xl overflow-hidden"></div>
+                
+                <div id="modalDescription" class="text-gray-700 text-lg leading-relaxed mb-6"></div>
+                
+                <div id="modalTags" class="mb-6"></div>
+                
+                <div id="modalMeta" class="text-sm text-gray-500 mb-6"></div>
+                
+                <div id="modalAction" class="flex gap-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample Data (This will be replaced with CMS data later)
+        const resources = [
+            {
+                id: 1,
+                title: "Flower Breathing",
+                description: "Flower Breathing is a calming breathing exercise that uses imagination to help slow down and relax. You pretend you're holding a flower, then breathe in slowly through your nose as if smelling the flower, and breathe out gently through your mouth like you're blowing the petals. This simple technique helps focus the mind, reduce stress, and promote a sense of calm—perfect for kids and adults alike.",
+                type: "article",
+                topic: "mindful-check-in",
+                thumbnail: "images/flower-breathing.png",
+                tags: ["breathing", "mindfulness", "relaxation"],
+                readTime: "3 min read",
+                author: "Kindness Matters",
+                date: "2024-01-15"
+            },
+            {
+                id: 2,
+                title: "Five Finger Breathing",
+                description: "Five Finger Breathing is a simple mindfulness technique that uses your hand to guide your breath. You trace the outline of your fingers with the other hand, breathing in as you move up each finger and out as you move down. This helps calm the mind, slow the breath, and bring focus to the present moment. It's great for managing stress and can be used by kids and adults anytime, anywhere.",
+                type: "article",
+                topic: "mindful-check-in",
+                thumbnail: "images/five-finger-breathing.png",
+                tags: ["breathing", "mindfulness", "hand-tracing"],
+                readTime: "3 min read",
+                author: "Kindness Matters",
+                date: "2024-01-20"
+            },
+            {
+                id: 3,
+                title: "Shape Breathing",
+                description: "Shape Breathing is a mindful breathing technique where you trace a simple shape (like a square, triangle, or star) with your finger or in your mind. As you trace each side of the shape, you coordinate it with your breath — inhale on one side, exhale on the next, and so on. This rhythm helps focus attention, regulate breathing, and bring a sense of calm. It's an easy and effective tool for all ages to manage stress or anxiety.",
+                type: "article",
+                topic: "mindful-check-in",
+                thumbnail: "images/shape-breathing.png",
+                tags: ["breathing", "mindfulness", "shapes"],
+                readTime: "3 min read",
+                author: "Kindness Matters",
+                date: "2024-01-18"
+            },
+            {
+                id: 4,
+                title: "Feather Breathing",
+                description: "Using a feather for deep breathing is a playful and calming mindfulness activity, especially great for kids. You hold or look at a feather and breathe in slowly through your nose, then gently blow out through your mouth as if trying to make the feather dance or float. This visual and physical cue helps slow the breath, focus attention, and promote relaxation in a simple, soothing way.",
+                type: "article",
+                topic: "conscious-breathing",
+                thumbnail: "images/feather-breathing.png",
+                tags: ["breathing", "playful", "kids"],
+                readTime: "3 min read",
+                author: "Kindness Matters",
+                date: "2024-01-10"
+            },
+            {
+                id: 5,
+                title: "Take a Mindful BREAK",
+                description: "Take a moment to pause. Breathe in slowly through your nose, feeling the air fill your belly. Let each breath help you feel calm, present, and grounded.",
+                type: "article",
+                topic: "conscious-breathing",
+                thumbnail: "images/take-a-mindful-break.png",
+                tags: ["pause", "mindfulness", "grounding"],
+                readTime: "2 min read",
+                author: "Kindness Matters",
+                date: "2024-01-22"
+            },
+            {
+                id: 6,
+                title: "Reflection Bag",
+                description: "A gesture of comfort, kindness, and encouragement for someone in the community.",
+                type: "pdf",
+                topic: "reflection",
+                thumbnail: "images/reflection-bag.png",
+                tags: ["kindness", "community", "comfort"],
+                pages: 1,
+                author: "Kindness Matters",
+                date: "2024-01-12",
+                fileUrl: "https://drive.google.com/file/d/1-5NxKkBbT9d0Evjzj83Bwx_BL-di-77J/view?usp=drive_link"
+            },
+            {
+                id: 7,
+                title: "Create A Kindness Journal",
+                description: "Create a Kindness Journal - A space to grow your compassion, gratitude, and self-awareness.",
+                type: "pdf",
+                topic: "compassion",
+                thumbnail: "images/create-a-kindness-journal.png",
+                tags: ["journal", "gratitude", "compassion"],
+                pages: 1,
+                author: "Kindness Matters",
+                date: "2024-01-08",
+                fileUrl: "https://drive.google.com/file/d/17QsTn_hxHwjcqBOWScrexVCZAxXMRif8/view"
+            },
+            {
+                id: 8,
+                title: "Reflection Intro",
+                description: "This introduction emphasizes the importance of self-awareness as a tool for emotional balance. By tuning into our thoughts, feelings, and experiences, we can better understand ourselves and respond rather than react. Reflection allows us to pause, gain clarity, and make choices that support our well-being. Through mindful awareness, we build emotional strength, resilience, and a deeper connection with ourselves and others.",
+                type: "pdf",
+                topic: "regulation",
+                thumbnail: "images/reflection-intro.png",
+                tags: ["self-awareness", "emotional-balance", "reflection"],
+                pages: 1,
+                author: "Kindness Matters",
+                date: "2024-01-25",
+                fileUrl: "https://drive.google.com/file/d/1nJDF1v5PKWLyw-fP8WHZfoVxeoykXgiO/view"
+            },
+            {
+                id: 9,
+                title: "Calming Jar",
+                description: "A calm down jar (also called a glitter jar or mindfulness jar) is a simple, hands-on tool used to help children (and adults) self-regulate emotions, reduce stress, and practice mindfulness. When shaken, the swirling glitter or objects inside represent big feelings. As the contents slowly settle, it visually models how our minds and bodies can settle too.",
+                type: "pdf",
+                topic: "regulation",
+                thumbnail: "images/calming-jar.png",
+                tags: ["self-regulation", "mindfulness", "emotions"],
+                pages: 1,
+                author: "Kindness Matters",
+                date: "2024-01-19",
+                fileUrl: "https://drive.google.com/file/d/1nJDF1v5PKWLyw-fP8WHZfoVxeoykXgiO/view"
+            },
+            {
+                id: 10,
+                title: "Wheel of Choices",
+                description: "To empower students or children with healthy, proactive strategies to manage emotions and make positive choices when upset, overwhelmed, frustrated, or dysregulated.",
+                type: "pdf",
+                topic: "regulation",
+                thumbnail: "images/wheel-of-choices.png",
+                tags: ["choices", "emotions", "strategies"],
+                pages: 1,
+                author: "Kindness Matters",
+                date: "2024-01-14",
+                fileUrl: "https://drive.google.com/file/d/1nJDF1v5PKWLyw-fP8WHZfoVxeoykXgiO/view"
+            },
+            {
+                id: 11,
+                title: "The Things I Can Control",
+                description: "This poster is a visual reminder to help children and adults focus on what they can control rather than what they can't. Draw a Line Down the Middle – Fold your paper in half or draw a line to make two sections. Left side: Things I Can Control. Right side: Things I Cannot Control. Label Each Side – Write the titles at the top of each column. Think of Examples - Can Control: My attitude, my effort, how I treat others, my words, my choices. Cannot Control: The weather, other people's actions, what others think, time, traffic. Write or Draw – In each column, add words or little pictures to show your examples. Decorate – Use colors, doodles, or stickers to make your poster fun and easy to remember. Hang It Up – Place your poster somewhere you can see it when you need a reminder.",
+                type: "article",
+                topic: "optimistic-thinking",
+                thumbnail: "images/things-i-can-control.png",
+                tags: ["control", "mindset", "positivity"],
+                readTime: "5 min read",
+                author: "Kindness Matters",
+                date: "2024-01-21"
+            },
+            {
+                id: 12,
+                title: "KM365 INTRO 2024",
+                description: "KM365 INTRO 2024 - An introduction to our year-long kindness journey and daily practice initiative.",
+                type: "video",
+                topic: "awareness",
+                thumbnail: "images/yt-intro.jpg",
+                tags: ["positivity", "daily-practice", "introduction"],
+                duration: "2:15",
+                author: "Kindness Matters",
+                date: "2024-01-05",
+                videoUrl: "https://www.youtube.com/watch?v=FOJHjBxdyCk"
+            }
+        ];
+
+        // State management
+        let currentView = 'grid';
+        let currentFilters = {
+            type: 'all',
+            topic: 'all',
+            search: ''
+        };
+
+        // Get icon for resource type
+        function getTypeIcon(type) {
+            const icons = {
+                video: 'fa-video',
+                image: 'fa-image',
+                gallery: 'fa-images',
+                article: 'fa-file-alt',
+                file: 'fa-file',
+                pdf: 'fa-file-pdf',
+                link: 'fa-link'
+            };
+            return icons[type] || 'fa-file';
+        }
+
+        // Render resources
+        function renderResources() {
+            const container = document.getElementById('resourcesContainer');
+            const emptyState = document.getElementById('emptyState');
+            
+            // Filter resources
+            let filtered = resources.filter(resource => {
+                const matchesType = currentFilters.type === 'all' || resource.type === currentFilters.type;
+                const matchesTopic = currentFilters.topic === 'all' || resource.topic === currentFilters.topic;
+                const matchesSearch = currentFilters.search === '' || 
+                    resource.title.toLowerCase().includes(currentFilters.search.toLowerCase()) ||
+                    resource.description.toLowerCase().includes(currentFilters.search.toLowerCase()) ||
+                    resource.tags.some(tag => tag.toLowerCase().includes(currentFilters.search.toLowerCase()));
+                
+                return matchesType && matchesTopic && matchesSearch;
+            });
+
+            // Update result count
+            document.getElementById('resultCount').textContent = filtered.length;
+
+            // Show/hide empty state
+            if (filtered.length === 0) {
+                container.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                container.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+            }
+
+            // Update container class for view type
+            if (currentView === 'list') {
+                container.className = 'list-view space-y-4';
+            } else {
+                container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
+            }
+
+            // Render resource cards
+            container.innerHTML = filtered.map(resource => `
+                <div class="resource-card" onclick="openModal(${resource.id})">
+                    <div class="resource-thumbnail" style="background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url('${resource.thumbnail}'); background-size: cover; background-position: center;">
+                        <div class="p-4 flex justify-between items-start">
+                            <span class="badge type-${resource.type}">
+                                <i class="fas ${getTypeIcon(resource.type)}"></i>
+                                ${resource.type}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="resource-content p-5">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2 line-clamp-2">${resource.title}</h3>
+                        <p class="text-gray-600 mb-4 line-clamp-3">${resource.description}</p>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="inline-block px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-semibold">
+                                ${resource.topic.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                            </span>
+                            ${resource.tags.slice(0, 2).map(tag => `
+                                <span class="tag">${tag}</span>
+                            `).join('')}
+                        </div>
+                        <div class="flex items-center justify-between text-sm text-gray-500">
+                            <span><i class="fas fa-user mr-1"></i> ${resource.author}</span>
+                            <span class="text-blue-600 font-medium">View Details →</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Open modal with resource details
+        function openModal(resourceId) {
+            const resource = resources.find(r => r.id === resourceId);
+            if (!resource) return;
+
+            const modal = document.getElementById('resourceModal');
+            document.getElementById('modalTitle').textContent = resource.title;
+            
+            // Badges
+            let metaInfo = '';
+            if (resource.duration) metaInfo = resource.duration;
+            if (resource.readTime) metaInfo = resource.readTime;
+            if (resource.pages) metaInfo = `${resource.pages} pages`;
+            if (resource.imageCount) metaInfo = `${resource.imageCount} images`;
+            if (resource.fileSize) metaInfo = resource.fileSize;
+            
+            document.getElementById('modalBadges').innerHTML = `
+                <span class="badge type-${resource.type}">
+                    <i class="fas ${getTypeIcon(resource.type)}"></i>
+                    ${resource.type}
+                </span>
+                <span class="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
+                    ${resource.topic.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                </span>
+                ${metaInfo ? `<span class="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold">
+                    ${metaInfo}
+                </span>` : ''}
+            `;
+            
+            // Thumbnail or Video
+            if (resource.type === 'video' && resource.videoUrl) {
+                const videoId = resource.videoUrl.includes('youtube.com') || resource.videoUrl.includes('youtu.be') 
+                    ? resource.videoUrl.split('v=')[1]?.split('&')[0] || resource.videoUrl.split('/').pop() 
+                    : null;
+                
+                if (videoId) {
+                    document.getElementById('modalThumbnail').innerHTML = `
+                        <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+                            <iframe 
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                                src="https://www.youtube.com/embed/${videoId}" 
+                                frameborder="0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowfullscreen
+                                class="rounded-xl">
+                            </iframe>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('modalThumbnail').innerHTML = `
+                        <img src="${resource.thumbnail}" alt="${resource.title}" class="w-full h-auto rounded-xl">
+                    `;
+                }
+            } else {
+                document.getElementById('modalThumbnail').innerHTML = `
+                    <img src="${resource.thumbnail}" alt="${resource.title}" class="w-full h-auto rounded-xl">
+                `;
+            }
+            
+            // Description
+            document.getElementById('modalDescription').textContent = resource.description;
+            
+            // Tags
+            document.getElementById('modalTags').innerHTML = `
+                <div class="flex flex-wrap gap-2">
+                    ${resource.tags.map(tag => `<span class="tag"><i class="fas fa-tag mr-1"></i>${tag}</span>`).join('')}
+                </div>
+            `;
+            
+            // Meta info
+            document.getElementById('modalMeta').innerHTML = `
+                <div class="flex items-center gap-4">
+                    <span><i class="fas fa-user mr-2"></i>${resource.author}</span>
+                    <span><i class="fas fa-calendar mr-2"></i>${new Date(resource.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                </div>
+            `;
+            
+            // Action buttons
+            let actionButton = '';
+            switch(resource.type) {
+                case 'video':
+                    const videoUrl = resource.videoUrl || '#';
+                    actionButton = `<a href="${videoUrl}" target="_blank" class="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
+                        <i class="fas fa-play mr-2"></i>Watch Video
+                    </a>`;
+                    break;
+                case 'article':
+                    actionButton = `<button class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
+                        <i class="fas fa-book-open mr-2"></i>Read Article
+                    </button>`;
+                    break;
+                case 'pdf':
+                case 'file':
+                    const fileUrl = resource.fileUrl || '#';
+                    actionButton = `<a href="${fileUrl}" target="_blank" class="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
+                        <i class="fas fa-download mr-2"></i>Download
+                    </a>`;
+                    break;
+                case 'link':
+                    actionButton = `<button class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
+                        <i class="fas fa-external-link-alt mr-2"></i>Visit Resource
+                    </button>`;
+                    break;
+                case 'gallery':
+                case 'image':
+                    actionButton = `<button class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
+                        <i class="fas fa-eye mr-2"></i>View Gallery
+                    </button>`;
+                    break;
+            }
+            
+            document.getElementById('modalAction').innerHTML = `
+                ${actionButton}
+                <button class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-semibold">
+                    <i class="fas fa-share-alt mr-2"></i>Share
+                </button>
+            `;
+            
+            // Show modal with animation
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Close modal
+        function closeModal() {
+            const modal = document.getElementById('resourceModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Event listeners for filters
+        document.querySelectorAll('.type-filter').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.type-filter').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentFilters.type = this.dataset.type;
+                renderResources();
+            });
+        });
+
+        document.querySelectorAll('.topic-filter').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.topic-filter').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentFilters.topic = this.dataset.topic;
+                renderResources();
+            });
+        });
+
+        // Search input
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            currentFilters.search = e.target.value;
+            renderResources();
+        });
+
+        // View toggle
+        document.getElementById('gridViewBtn').addEventListener('click', function() {
+            currentView = 'grid';
+            document.getElementById('gridViewBtn').classList.add('active', 'bg-blue-500', 'text-white');
+            document.getElementById('gridViewBtn').classList.remove('bg-gray-100', 'text-gray-700');
+            document.getElementById('listViewBtn').classList.remove('active', 'bg-blue-500', 'text-white');
+            document.getElementById('listViewBtn').classList.add('bg-gray-100', 'text-gray-700');
+            renderResources();
+        });
+
+        document.getElementById('listViewBtn').addEventListener('click', function() {
+            currentView = 'list';
+            document.getElementById('listViewBtn').classList.add('active', 'bg-blue-500', 'text-white');
+            document.getElementById('listViewBtn').classList.remove('bg-gray-100', 'text-gray-700');
+            document.getElementById('gridViewBtn').classList.remove('active', 'bg-blue-500', 'text-white');
+            document.getElementById('gridViewBtn').classList.add('bg-gray-100', 'text-gray-700');
+            renderResources();
+        });
+
+        // Modal close events
+        document.getElementById('closeModal').addEventListener('click', closeModal);
+        document.getElementById('resourceModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // Initial render
+        renderResources();
+    </script>
+</body>
+</html>
